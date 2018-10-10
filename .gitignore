@@ -1,0 +1,10 @@
+**/.Rproj.user
+**/.Rhistory
+**/.RData
+**/*.map
+**/*.swp
+**/*.swo
+**/*~
+**/.DS_Store
+.vscode/
+.Rproj.user
