@@ -79,6 +79,21 @@ turbine$Zip <- sub("ZIP_", "", turbine$Zip)
 turbine <- turbine[turbine$Zip %in% rownames(zip_and_district), ]
 
 
+
+# Group the turbine data by zip code. 
+zip_aggregated_turbine <- aggregate(turbine, list(turbine$`Zip`), mean)
+# TODO: Compute per-district sample size
+
+# Clean the columns. Fix names and drop Zip
+zip_aggregated_turbine$`Zip` <- zip_aggregated_turbine$Group.1
+zip_aggregated_turbine$Group.1 <- NULL
+
+write.table(zip_aggregated_turbine,
+            "../derived_data/zip_aggregated_turbine.csv",
+            sep = "\t",
+            row.names = FALSE)
+
+
 # Now assign a district for each row.
 # Some postal code areas overlap with multiple districts, so for each row we
 # use the zip_and_districts matrix as discrete probability distributions and
