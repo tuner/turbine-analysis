@@ -24,7 +24,7 @@ ui <- fluidPage(
   titlePanel("Helsinki map"),
   sidebarLayout(position = "right",
                 sidebarPanel("Questions",
-                    radioButtons("question", label="", choices = rb_options, selected=8)             
+                    radioButtons("question", label="", choices = rb_options, selected=8)
                 ),
                 mainPanel("Helsinki map",
                           leafletOutput("helsinki_map"),
@@ -40,9 +40,9 @@ server <- function(input, output, session){
     leaflet(districts) %>%
         fitBounds(24.78516,60.09772, 25.27679, 60.31403) %>%
         addPolygons(
-          weight=1, 
-          fillColor=~colorFactor("Blues", districts@data[,column_id])(districts@data[,column_id]), 
-          fillOpacity = 1, 
+          weight=1,
+          fillColor=~colorBin("RdGy", bins=5, districts@data[,column_id])(districts@data[,column_id]),
+          fillOpacity = 1,
           layerId = ~District.id
         )
   })

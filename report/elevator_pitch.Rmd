@@ -1,7 +1,11 @@
 ---
 title: "Factors that affect poll results"
 author: "Kari Lavikka and Vladimir Dobrodeev"
-output: revealjs::revealjs_presentation
+output: 
+  revealjs::revealjs_presentation:
+    includes:
+      in_header: reveal_header.html
+  
 ---
 
 ```{r setup, include=FALSE}
@@ -44,9 +48,46 @@ https://www.avoindata.fi/data/fi/dataset/helsingin-tuulivoimakysely-2015
 
 ### "What do you feel blablaa?"
 
-TODO: Put a map here
+```{js}
 
 
+```
+
+<center>
+
+```{r message=FALSE, warning=FALSE, out.width="70%"}
+library(leaflet)
+library(sp)
+library(rgdal)
+
+postareas <- invisible(spTransform(
+  readOGR(file.path("..","raw_data","PKS_postinumeroalueet_2017_shp.shp")),
+  CRS("+proj=longlat")
+))
+postareas$Posno <- as.numeric(as.character(postareas$Posno))
+postareas <- postareas[postareas$Posno>=2&postareas$Posno<=990,]
+
+turbine_zip_data <- read.csv(file.path("..","derived_data","zip_aggregated_turbine.csv"), sep="\t")
+
+names(postareas)[names(postareas)=="Posno"] <- "Zip"
+
+postareas_and_aggregated_data <- merge(postareas, turbine_zip_data, by="Zip")
+
+turbine_poll_questions <- list()
+
+m<-leaflet(postareas_and_aggregated_data) %>% 
+  addTiles() %>% 
+  fitBounds(24.78516, 60.09772, 25.27679, 60.31403) %>%
+  addPolygons(
+        weight=1,
+        fillColor=~colorNumeric("PiYG", Helsinki.should.be.an.example.of.reducing.carbon.dioxide.emissions)(Helsinki.should.be.an.example.of.reducing.carbon.dioxide.emissions),
+        fillOpacity = 0.7,
+        layerId = ~Zip
+      )
+m
+```
+
+</center>
 
 ## Census data set
 
@@ -70,6 +111,8 @@ This data set contains regional demographic data. e.g.
 ### Percentage of families without cars
 
 TODO: Put a map here
+
+
 
 
 ## Area harmonization
