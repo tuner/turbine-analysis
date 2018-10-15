@@ -1,7 +1,6 @@
 ---
-title: "Elevator pitch"
-author: "Kari, Sara & Vladimir"
-date: "10 10 2018"
+title: "Factors that affect poll results"
+author: "Kari Lavikka and Vladimir Dobrodeev"
 output: revealjs::revealjs_presentation
 ---
 
@@ -10,27 +9,115 @@ output: revealjs::revealjs_presentation
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-## R Markdown
+```{r message=FALSE}
+library(readr)
 
-This is an R Markdown presentation. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+# TODO: Data loading and splitting should be available in a "library"
+# So that we can easily include it in 1) pitch, 2) report, 3) Shiny app
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
+combined_data <- read_delim("../derived_data/combined_data.csv", 
+                            "\t", escape_double = FALSE, trim_ws = TRUE)
 
-## Slide with Bullets
+# Subset the data by columns
+turbines <- combined_data[, 1:18]
+census <- combined_data[, 19:38]
 
-- Bullet 1
-- Bullet 2
-- Bullet 3
-
-## Slide with R Output
-
-```{r cars, echo = TRUE}
-summary(cars)
 ```
 
-## Slide with Plot
+## Wind Turbine Poll
 
-```{r pressure}
-plot(pressure)
+Tuulivoiman sosiaalinen hyväksyttävyys Helsingissä  
+(Social acceptance of wind power in Helsinki)
+
+https://www.avoindata.fi/data/fi/dataset/helsingin-tuulivoimakysely-2015
+
+### Variables
+
+* Several questions about opinion on turbines
+* Age
+* Sex
+* Zip code
+
+
+
+## Geographical variance in variables
+
+### "What do you feel blablaa?"
+
+TODO: Put a map here
+
+
+
+## Census data set
+
+Helsinki alueittain  
+(Helsinki by regions)
+
+https://www.avoindata.fi/data/fi/dataset/helsinki-alueittain
+
+This data set contains regional demographic data. e.g.
+
+* Support of political parties
+* Education
+* Employment rate
+* Number of Alkos (booze shops)
+* And so on
+
+
+
+## Geographical variance in variables
+
+### Percentage of families without cars
+
+TODO: Put a map here
+
+
+## Area harmonization
+
+* Turbine data has Zip-code areas
+* Census data has districts
+* These do not line up perfectly
+* We used random sampling based on address density within each area
+
+
+## Visualizing correlation
+
+Each point represents a single district
+
+```{r message=FALSE, warning=FALSE, out.width="70%"}
+# TODO: This too should be in a "library"
+
+# Simple linear regression
+model_and_plot <- function(x, y, axis_labels) {
+  # Read more at: http://r-statistics.co/Linear-Regression.html
+  model <- lm(y ~ x)
+  plot(x, y,
+       pch = 16,
+       xlab = axis_labels[[1]],
+       ylab = axis_labels[[2]])
+  
+  abline(model, col = "green")
+  
+  text(x, y,
+       labels = combined_data$`District name`,
+       col = "#404040",
+       cex = 0.5,
+       adj = c(-0.1, 0.5))
+  
+  title(paste("Correlation:", cor(y, x)))
+}
+
+model_and_plot(census$KOK,
+               turbines$`I would like to buy local wind power in Helsinki, even if cheaper electricity would be available from elsewhere`,
+               list(
+                 "Support of Kokoomus",
+                 "I would like to by local wind power"))
 ```
 
+
+## Conclusions
+
+* "GreenPeace"
+* How to target a campaign
+
+Thanks!
