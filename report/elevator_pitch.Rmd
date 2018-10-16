@@ -3,6 +3,7 @@ title: "Factors that affect poll results"
 author: "Kari Lavikka and Vladimir Dobrodeev"
 output: 
   revealjs::revealjs_presentation:
+    theme: sky
     includes:
       in_header: reveal_header.html
   
@@ -48,14 +49,11 @@ https://www.avoindata.fi/data/fi/dataset/helsingin-tuulivoimakysely-2015
 
 ### "What do you feel blablaa?"
 
-```{js}
-
-
-```
-
 <center>
 
-```{r message=FALSE, warning=FALSE, out.width="70%"}
+```{r, message=FALSE, warning=FALSE, out.width="70%", echo=FALSE, results='hide'}
+# Load data with supressed output
+
 library(leaflet)
 library(sp)
 library(rgdal)
@@ -66,6 +64,10 @@ postareas <- invisible(spTransform(
 ))
 postareas$Posno <- as.numeric(as.character(postareas$Posno))
 postareas <- postareas[postareas$Posno>=2&postareas$Posno<=990,]
+
+```
+
+```{r, message=FALSE, warning=FALSE, out.width="70%", echo=FALSE}
 
 turbine_zip_data <- read.csv(file.path("..","derived_data","zip_aggregated_turbine.csv"), sep="\t")
 
@@ -80,14 +82,46 @@ m<-leaflet(postareas_and_aggregated_data) %>%
   fitBounds(24.78516, 60.09772, 25.27679, 60.31403) %>%
   addPolygons(
         weight=1,
-        fillColor=~colorNumeric("PiYG", Helsinki.should.be.an.example.of.reducing.carbon.dioxide.emissions)(Helsinki.should.be.an.example.of.reducing.carbon.dioxide.emissions),
+        fillColor=~colorNumeric("PiYG",postareas_and_aggregated_data@data[,8])(postareas_and_aggregated_data@data[,8]),
         fillOpacity = 0.7,
         layerId = ~Zip
-      )
+      ) %>%
+  addLegend(
+    "bottomright",
+    title="Average response",
+    pal=colorNumeric("PiYG",postareas_and_aggregated_data@data[,8]),
+    values=postareas_and_aggregated_data@data[,8],
+    opacity=1
+  )
 m
 ```
-
 </center>
+
+```{js}
+var maps = [];
+
+L.Map.addInitHook(function() {
+    var slides = document.querySelector('.slides'),
+        zoom = Number(slides.style.zoom);
+    maps.push(this);
+
+    // Reveal.js sometimes use the zoom CSS property, but sometimes a scale
+    // transform instead. We handle both.
+    if (zoom) {
+        this._container.style.zoom = 1/zoom;
+    } else {
+        zoom = Number(slides.style.transform.replace(/.*scale\(([0-9\.]+)\).*/, '$1'));
+        this._container.style.transform = 'scale(' + (1 / zoom) + ')';
+    }
+
+    this.invalidateSize();
+    
+    console.log(maps[0]);
+    maps[0].on("click", function(e){
+      console.log(e);
+    });
+});
+```
 
 ## Census data set
 

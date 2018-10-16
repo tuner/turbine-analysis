@@ -24,7 +24,7 @@ ui <- fluidPage(
   titlePanel("Helsinki map"),
   sidebarLayout(position = "right",
                 sidebarPanel("Questions",
-                    radioButtons("question", label="", choices = rb_options, selected=8)
+                radioButtons("question", label="", choices = rb_options)
                 ),
                 mainPanel("Helsinki map",
                           leafletOutput("helsinki_map"),
@@ -35,7 +35,7 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session){
-  output$helsinki_map <- renderLeaflet({
+output$helsinki_map <- renderLeaflet({
     column_id<-strtoi(input$question)
     leaflet(districts) %>%
         fitBounds(24.78516,60.09772, 25.27679, 60.31403) %>%
@@ -50,7 +50,7 @@ server <- function(input, output, session){
   observeEvent(input$helsinki_map_shape_click, {
     click <- input$helsinki_map_shape_click
     output$selected_region <- renderText(
-      as.character.factor(districts[districts$District.id==click$id,]$Nimi)
+		as.character.factor(districts[districts$District.id==click$id,]$Nimi)
     )
   })
 }
