@@ -44,8 +44,10 @@ model_and_plot <- function(x, y, axis_labels = list("x", "y")) {
        cex = 0.5,
        adj = c(-0.1, 0.5))
   
+  library(weights)
+  
   # TODO: Weights
-  title(paste("Correlation:", cor(y, x)))
+  title(paste("Correlation:", wtd.cor(y, x, data$n)[1]))
   
   #print(summary(model))
   # TODO: p-value to title or somewhere
