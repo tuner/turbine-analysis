@@ -4,28 +4,20 @@ author: "Kari Lavikka and Vladimir Dobrodeev"
 output: 
   revealjs::revealjs_presentation:
     theme: sky
+    transition: slide
     includes:
       in_header: reveal_header.html
-  
 ---
-
+      
 ```{r setup, include=FALSE}
 # See: https://bookdown.org/yihui/rmarkdown/revealjs.html
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r message=FALSE}
-library(readr)
+source("../scripts/common.R")
 
-# TODO: Data loading and splitting should be available in a "library"
-# So that we can easily include it in 1) pitch, 2) report, 3) Shiny app
-
-combined_data <- read_delim("../derived_data/combined_data.csv", 
-                            "\t", escape_double = FALSE, trim_ws = TRUE)
-
-# Subset the data by columns
-turbines <- combined_data[, 1:18]
-census <- combined_data[, 19:38]
+data <- load_data(min_n = 6)
 
 ```
 
@@ -161,34 +153,15 @@ TODO: Put a map here
 
 Each point represents a single district
 
-```{r message=FALSE, warning=FALSE, out.width="70%"}
-# TODO: This too should be in a "library"
+```{r message=FALSE, warning=FALSE, out.width="80%", fig.align="center"}
 
-# Simple linear regression
-model_and_plot <- function(x, y, axis_labels) {
-  # Read more at: http://r-statistics.co/Linear-Regression.html
-  model <- lm(y ~ x)
-  plot(x, y,
-       pch = 16,
-       xlab = axis_labels[[1]],
-       ylab = axis_labels[[2]])
-  
-  abline(model, col = "green")
-  
-  text(x, y,
-       labels = combined_data$`District name`,
-       col = "#404040",
-       cex = 0.5,
-       adj = c(-0.1, 0.5))
-  
-  title(paste("Correlation:", cor(y, x)))
-}
-
-model_and_plot(census$KOK,
-               turbines$`I would like to buy local wind power in Helsinki, even if cheaper electricity would be available from elsewhere`,
+model_and_plot(data$census$VASL,
+               data$turbine$`Construction of wind turbines would have a positive impact on Helsinki's image.`,
                list(
-                 "Support of Kokoomus",
-                 "I would like to by local wind power"))
+                 "Support of Vasemmistoliitto",
+                 "Turbines would have positive impact on the public image of Helsinki"
+               ))
+
 ```
 
 

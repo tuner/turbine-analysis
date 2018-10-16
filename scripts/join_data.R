@@ -117,9 +117,12 @@ aggregated_turbine$`District id` <- aggregated_turbine$Group.1
 aggregated_turbine$Group.1 <- NULL
 aggregated_turbine$Zip <- NULL
 
+# Compute sample sizes
+aggregated_turbine$n <- table(turbine$`District id`)[aggregated_turbine$`District id`]
 
 # Combine the two data sets
 combined_data <- merge(aggregated_turbine, demography, by = "District id")
+
 
 write.table(combined_data,
             "../derived_data/combined_data.csv",
