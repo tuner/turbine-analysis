@@ -8,7 +8,6 @@ The actual project title:
 
 ## The team (in alphabetical order)
 
-* Kari
-* Sara
-* Vladimir
+* Kari Lavikka
+* Vladimir Dobrodeev
 
