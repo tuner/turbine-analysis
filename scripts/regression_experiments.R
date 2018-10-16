@@ -38,26 +38,4 @@ model_and_plot(data$census$KOK, data$turbine$`What do you feel if wind turbines 
 model_and_plot(data$census$VASL, data$turbine$`What do you feel if wind turbines would be built at the outer territorial waters (8-10 km from the coastline) of Helsinki?`)
 
 
-# Pretty plot of correlations
-plot_correlations <- function() {
-  # https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html
-  library(corrplot)
-  
-  # Remove non-numeric columns
-  numeric_data <- combined_data[, -c(1, 18)]
-  # TODO: The questions must be shorter
-  colnames(numeric_data) <- paste0(substring(colnames(numeric_data), 1, 100))
-  
-  # Create a correlation matrix, turbine survey vs. census
-  # TODO: Index based splitting breaks if we add/remove variables
-  # TODO: Weights
-  M <- cor(numeric_data[, 1:16], numeric_data[, 17:36])
-  
-  # Plot it
-  corrplot(M,
-           method = "circle",
-           tl.cex = 0.6,
-           tl.col = "black")
-}
-
 plot_correlations()

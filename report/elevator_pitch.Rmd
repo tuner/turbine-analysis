@@ -140,30 +140,43 @@ TODO: Put a map here
 
 
 
-
-## Area harmonization
-
-* Turbine data has Zip-code areas
-* Census data has districts
-* These do not line up perfectly
-* We used random sampling based on address density within each area
-
-
-## Visualizing correlation
+## Visualizing correlation (1/2)
 
 Each point represents a single district
 
 ```{r message=FALSE, warning=FALSE, out.width="80%", fig.align="center"}
 
-model_and_plot(data$census$VASL,
-               data$turbine$`Construction of wind turbines would have a positive impact on Helsinki's image.`,
+model_and_plot(data$census$`Swedish speaking`,
+               data$turbine$`What do you feel if wind turbines would be built at the outer territorial waters (8-10 km from the coastline) of Helsinki?`,
                list(
-                 "Support of Vasemmistoliitto",
-                 "Turbines would have positive impact on the public image of Helsinki"
+                 "Swedish speaking",
+                 "Turbines at the outer territorial waters"
                ))
 
 ```
 
+
+## Visualizing correlation (2/2)
+
+Each point represents a single district
+
+```{r message=FALSE, warning=FALSE, out.width="80%", fig.align="center"}
+
+model_and_plot(data$census$`Households without cars`,
+               data$turbine$`I would like to participate in the construction of wind power as an investor (eg funds, shareholdings).`,
+               list(
+                 "Households without cars",
+                 "Would like to invest in turbines"
+               ))
+
+```
+
+
+## Correlation Matrix
+
+```{r message=FALSE, warning=FALSE, fig.width=10, fig.height=5}
+plot_correlations()
+```
 
 ## Conclusions
 
