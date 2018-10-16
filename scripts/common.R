@@ -16,7 +16,7 @@ load_data <- function(min_n = 0) {
     turbine = combined_data[, 2:17],
     n = unlist(combined_data[, 18]),
     district_name = unlist(combined_data[, 19]),
-    census = combined_data[, 20:38]
+    census = combined_data[, 20:39]
   )
 }
 
