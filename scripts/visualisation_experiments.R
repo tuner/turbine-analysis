@@ -38,10 +38,11 @@ server <- function(input, output, session){
 output$helsinki_map <- renderLeaflet({
     column_id<-strtoi(input$question)
     leaflet(districts) %>%
+        addTiles() %>%
         fitBounds(24.78516,60.09772, 25.27679, 60.31403) %>%
         addPolygons(
           weight=1,
-          fillColor=~colorBin("RdGy", bins=5, districts@data[,column_id])(districts@data[,column_id]),
+          fillColor=~colorNumeric("PiYG", districts@data[,column_id])(districts@data[,column_id]),
           fillOpacity = 1,
           layerId = ~District.id
         )
@@ -56,15 +57,3 @@ output$helsinki_map <- renderLeaflet({
 }
 
 shinyApp(ui, server)
-
-library(leaflet)
-library(sp)
-library(rgdal)
-
-postareas <- invisible(spTransform(
-  readOGR(file.path("..","raw_data","PKS_postinumeroalueet_2017_shp.shp")),
-  CRS("+proj=longlat")
-))
-postareas$Posno <- as.numeric(as.character(postareas$Posno))
-postareas <- postareas[postareas$Posno>=2&postareas$Posno<=990,]
-
