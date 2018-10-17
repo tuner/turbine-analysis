@@ -1,5 +1,5 @@
 ---
-title: "Factors that affect poll results"
+title: "Explaining poll results by neighborhood characteristics"
 author: "Kari Lavikka and Vladimir Dobrodeev"
 output: 
   revealjs::revealjs_presentation:
@@ -31,6 +31,7 @@ https://www.avoindata.fi/data/fi/dataset/helsingin-tuulivoimakysely-2015
 ### Variables
 
 * Several questions about opinion on turbines
+* For example: "Local wind power should be produced in Helsinki"
 * Age
 * Sex
 * Zip code
@@ -140,7 +141,7 @@ TODO: Put a map here
 
 
 
-## Visualizing correlation (1/2)
+## Visualizing correlation (1 / 3)
 
 Each point represents a single district
 
@@ -156,7 +157,7 @@ model_and_plot(data$census$`Swedish speaking`,
 ```
 
 
-## Visualizing correlation (2/2)
+## Visualizing correlation (2 / 3)
 
 Each point represents a single district
 
@@ -172,6 +173,22 @@ model_and_plot(data$census$`Households without cars`,
 ```
 
 
+## Visualizing correlation (3 / 3)
+
+Each point represents a single district
+
+```{r message=FALSE, warning=FALSE, out.width="80%", fig.align="center"}
+
+model_and_plot(data$census$`Alko per 1000`,
+               data$turbine$`Construction of wind turbines would have a positive impact on Helsinki's image.`,
+               list(
+                 "Number of Alkos per 1000 people",
+                 "Turbines have positive impact on the Image of Helsinki"
+               ))
+
+```
+
+
 ## Correlation Matrix
 
 ```{r message=FALSE, warning=FALSE, fig.width=10, fig.height=5}
@@ -180,7 +197,9 @@ plot_correlations()
 
 ## Conclusions
 
-* "GreenPeace"
-* How to target a campaign
+"Greenpeace" could launch a targeted influencing campaign towards car owners, for example.
+
+* Correlation is not the same as causality
+* The method could be applied to other polls as well
 
 Thanks!
