@@ -56,3 +56,15 @@ output$helsinki_map <- renderLeaflet({
 }
 
 shinyApp(ui, server)
+
+library(leaflet)
+library(sp)
+library(rgdal)
+
+postareas <- invisible(spTransform(
+  readOGR(file.path("..","raw_data","PKS_postinumeroalueet_2017_shp.shp")),
+  CRS("+proj=longlat")
+))
+postareas$Posno <- as.numeric(as.character(postareas$Posno))
+postareas <- postareas[postareas$Posno>=2&postareas$Posno<=990,]
+

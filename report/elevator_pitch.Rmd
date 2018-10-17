@@ -40,7 +40,7 @@ https://www.avoindata.fi/data/fi/dataset/helsingin-tuulivoimakysely-2015
 
 ## Geographical variance in variables
 
-### "What do you feel blablaa?"
+### "Should Helsinki produce local wind power?"
 
 <center>
 
@@ -75,7 +75,7 @@ m<-leaflet(postareas_and_aggregated_data) %>%
   fitBounds(24.78516, 60.09772, 25.27679, 60.31403) %>%
   addPolygons(
         weight=1,
-        fillColor=~colorNumeric("PiYG",postareas_and_aggregated_data@data[,8])(postareas_and_aggregated_data@data[,8]),
+        fillColor=~colorNumeric("PiYG",postareas_and_aggregated_data$Local.wind.power.should.be.produced.in.Helsinki)(postareas_and_aggregated_data$Local.wind.power.should.be.produced.in.Helsinki),
         fillOpacity = 0.7,
         layerId = ~Zip
       ) %>%
@@ -137,9 +137,44 @@ This data set contains regional demographic data. e.g.
 
 ### Percentage of families without cars
 
-TODO: Put a map here
+```{r, results='hide'}
 
+districts <- spTransform(
+  readOGR(file.path("..","raw_data","piirialuejako-1995-2016.gpkg"), layer="perus_2016"),
+  CRS("+proj=longlat")
+)
 
+names(districts)[names(districts)=="PERUS"] <- "District.id"
+
+district_data <- read.csv(file.path("..", "derived_data", "combined_data.csv"), sep="\t", fileEncoding = "utf8", encoding = "utf8")
+
+districts <- merge(districts, district_data, by="District.id")
+
+```
+
+<center>
+
+```{r}
+m<-leaflet(districts) %>% 
+  addTiles() %>% 
+  fitBounds(24.78516, 60.09772, 25.27679, 60.31403) %>%
+  addPolygons(
+        weight=1,
+        fillColor=~colorNumeric("PiYG",districts$Households.without.cars)(districts$Households.without.cars),
+        fillOpacity = 0.7,
+        layerId = ~District.name
+      ) %>%
+  addLegend(
+    "bottomright",
+    title="Per cent of families without cars",
+    pal=colorNumeric("PiYG",districts$Households.without.cars),
+    values=districts$Households.without.cars,
+    opacity=1
+  )
+m
+```
+
+</center>
 
 ## Visualizing correlation (1 / 3)
 
