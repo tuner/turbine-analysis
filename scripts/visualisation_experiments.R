@@ -3,16 +3,17 @@ library(leaflet)
 library(sp)
 library(shiny)
 
-districts <- spTransform(
+# Read districts shapes
+helsinki_districts <- spTransform(
   readOGR(file.path("..","raw_data","piirialuejako-1995-2016.gpkg"), layer="perus_2016"),
   CRS("+proj=longlat")
 )
 
-names(districts)[names(districts)=="PERUS"] <- "District.id"
+names(helsinki_districts)[names(helsinki_districts)=="PERUS"] <- "District.id"
 
 data <- read.csv(file.path("..", "derived_data", "combined_data.csv"), sep="\t", fileEncoding = "utf8", encoding = "utf8")
 
-districts <- merge(districts, data, by="District.id")
+districts <- merge(helsinki_districts, data, by="District.id")
 
 rb_options <- list()
 
@@ -35,7 +36,7 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session){
-output$helsinki_map <- renderLeaflet({
+  output$helsinki_map <- renderLeaflet({
     column_id<-strtoi(input$question)
     leaflet(districts) %>%
         addTiles() %>%
@@ -43,9 +44,15 @@ output$helsinki_map <- renderLeaflet({
         addPolygons(
           weight=1,
           fillColor=~colorNumeric("PiYG", districts@data[,column_id])(districts@data[,column_id]),
-          fillOpacity = 1,
+          fillOpacity = 0.5,
           layerId = ~District.id
-        )
+        ) %>%
+      addLegend(
+        position="bottomright", 
+        pal=colorNumeric("PiYG", districts@data[,column_id]),
+        values=~districts@data[,column_id],
+        title=gsub("\\.", " ", names(districts@data)[column_id])
+      )
   })
 
   observeEvent(input$helsinki_map_shape_click, {
