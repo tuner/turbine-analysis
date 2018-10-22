@@ -2,6 +2,7 @@ library(rgdal)
 library(leaflet)
 library(sp)
 library(shiny)
+library(plotly)
 
 # Read districts shapes
 # Data are read for 2015 as an actual poll was done that year
@@ -25,10 +26,10 @@ for (i in 2:17){
 # Merge census data and districts shapes
 combined_data <- merge(helsinki_districts, census_data, by="District id")
 
-factors <- 24:length(names(combined_data@data))
+factors <- 26:length(names(combined_data@data))
 plots_id <- lapply(factors, function(x){ paste0(names(combined_data@data)[x], "plot") })
 tabs <- lapply(factors, function(x){
-  tabPanel(names(combined_data@data)[x], plotOutput(plots_id[x - min(factors)]))
+  tabPanel(names(combined_data@data)[x], plotlyOutput(plots_id[x - min(factors) + 1]))
 })
 
 ui <- fluidPage(
@@ -37,17 +38,43 @@ ui <- fluidPage(
                 sidebarPanel("Questions",
                   radioButtons("question", label="", choices = rb_options)
                 ),
-                mainPanel("Helsinki map",
-                          leafletOutput("helsinki_map"),
-                          uiOutput("Factors")
+                mainPanel("Factors information",
+                          uiOutput("Factors"),
+                          leafletOutput("helsinki_map")
                 )
   )
 )
 
 server <- function(input, output, session){
-  output$helsinki_map <- renderLeaflet({
-    column_id<-strtoi(input$question)
-    leaflet(combined_data) %>%
+  output$Factors <- renderUI({
+    do.call(tabsetPanel, tabs)
+  })
+  
+  lapply(factors, function(f) { output[[plots_id[[f - min(factors) + 1]]]] <- renderPlotly({
+      column_id<-strtoi(input$question)
+      plot_ly(
+        type="scatter",
+        mode="markers",
+        y = combined_data@data[,column_id], 
+        x = combined_data@data[,f],
+        size = combined_data$n,
+        symbol = "circle"
+        #symbols = combined_data$Nimi
+        #sizes = c(min(combined_data$n), max(combined_data$n))
+      )
+    }) 
+  })
+
+  # observeEvent(input$helsinki_map_shape_click, {
+  #   click <- input$helsinki_map_shape_click
+  # })
+  
+  observe({
+    plot_data <- event_data("plotly_click")
+    selected_row <- combined_data[plot_data[["pointNumber"]],]
+    output$helsinki_map <- renderLeaflet({
+      column_id<-strtoi(input$question)
+      leaflet(selected_row) %>%
         addTiles() %>%
         fitBounds(24.78516,60.09772, 25.27679, 60.31403) %>%
         addPolygons(
@@ -56,22 +83,13 @@ server <- function(input, output, session){
           fillOpacity = 0.5,
           layerId = ~`District id`
         ) %>%
-      addLegend(
-        position="bottomright", 
-        pal=colorNumeric("PiYG", -2:2),
-        values=~combined_data@data[,column_id],
-        title=names(combined_data@data)[column_id]
-      )
-  }) 
-  
-  output$Factors <- renderUI({
-    do.call(tabsetPanel, tabs)
-  })
-  
-  lapply(plots_id, function(x) { print(output[x])})
-
-  observeEvent(input$helsinki_map_shape_click, {
-    click <- input$helsinki_map_shape_click
+        addLegend(
+          position="bottomright", 
+          pal=colorNumeric("PiYG", -2:2),
+          values=~combined_data@data[,column_id],
+          title=names(combined_data@data)[column_id]
+        )
+    }) 
   })
 }
 
