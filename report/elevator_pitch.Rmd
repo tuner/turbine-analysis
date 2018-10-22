@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = FALSE)
 ```{r message=FALSE}
 source("../scripts/common.R")
 
-data <- load_data(min_n = 6)
+data <- load_data(min_n = 0)
 
 ```
 
@@ -40,11 +40,12 @@ https://www.avoindata.fi/data/fi/dataset/helsingin-tuulivoimakysely-2015
 
 ## Geographical variance in variables
 
-### "Should Helsinki produce local wind power?"
+"Should Helsinki produce local wind power?"
+<br />
 
 <center>
 
-```{r, message=FALSE, warning=FALSE, out.width="70%", echo=FALSE, results='hide'}
+```{r, message=FALSE, warning=FALSE, fig.height=6, echo=FALSE, results='hide'}
 # Load data with supressed output
 
 library(leaflet)
@@ -60,7 +61,7 @@ postareas <- postareas[postareas$Posno>=2&postareas$Posno<=990,]
 
 ```
 
-```{r, message=FALSE, warning=FALSE, out.width="70%", echo=FALSE}
+```{r, message=FALSE, warning=FALSE, fig.height=4.7, echo=FALSE}
 
 turbine_zip_data <- read.csv(file.path("..","derived_data","zip_aggregated_turbine.csv"), sep="\t")
 
@@ -135,7 +136,7 @@ This data set contains regional demographic data. e.g.
 
 ## Geographical variance in variables
 
-### Percentage of families without cars
+Percentage of families without cars
 
 ```{r, results='hide'}
 
@@ -152,9 +153,10 @@ districts <- merge(districts, district_data, by="District.id")
 
 ```
 
+<br />
 <center>
 
-```{r}
+```{r fig.height = 6}
 m<-leaflet(districts) %>% 
   addTiles() %>% 
   fitBounds(24.78516, 60.09772, 25.27679, 60.31403) %>%
