@@ -19,7 +19,7 @@ census_data <- read.csv(file.path("..", "derived_data", "combined_data.csv"), se
 
 rb_options <- list()
 
-for (i in 2:17){
+for (i in setdiff(2:17,12:13)){
   rb_options[names(census_data)[i]] <- i + 6
 }
 
@@ -59,7 +59,7 @@ server <- function(input, output, session){
         x = combined_data@data[,f],
         size = combined_data$n,
         symbol = "circle"
-        #symbols = combined_data$Nimi
+        # name = combined_data$Nimi
         #sizes = c(min(combined_data$n), max(combined_data$n))
       )
     }) 
@@ -69,27 +69,42 @@ server <- function(input, output, session){
   #   click <- input$helsinki_map_shape_click
   # })
   
+  output$helsinki_map <- renderLeaflet({
+    column_id<-strtoi(input$question)
+    leaflet(combined_data) %>%
+      addTiles() %>%
+      fitBounds(24.78516, 60.09772, 25.27679, 60.31403) %>%
+      addPolygons(
+        weight=1,
+        fillColor=~colorNumeric("PiYG", -2:2)(combined_data@data[,column_id]),
+        fillOpacity = 0.5,
+        layerId = ~`District id`
+      ) %>%
+      addLegend(
+        position="bottomright", 
+        pal=colorNumeric("PiYG", -2:2),
+        values=~combined_data@data[,column_id],
+        title=names(combined_data@data)[column_id]
+      )
+  })
+  
+  proxy <- leafletProxy("helsinki_map")
+  
   observe({
     plot_data <- event_data("plotly_click")
-    selected_row <- combined_data[plot_data[["pointNumber"]],]
-    output$helsinki_map <- renderLeaflet({
-      column_id<-strtoi(input$question)
-      leaflet(selected_row) %>%
-        addTiles() %>%
-        fitBounds(24.78516,60.09772, 25.27679, 60.31403) %>%
-        addPolygons(
-          weight=1,
-          fillColor=~colorNumeric("PiYG", -2:2)(combined_data@data[,column_id]),
-          fillOpacity = 0.5,
-          layerId = ~`District id`
-        ) %>%
-        addLegend(
-          position="bottomright", 
-          pal=colorNumeric("PiYG", -2:2),
-          values=~combined_data@data[,column_id],
-          title=names(combined_data@data)[column_id]
-        )
-    }) 
+    # print(plot_data)
+    if (is.null(plot_data)==FALSE){
+      proxy %>% removeShape("selected_district")
+      selected_row <- plot_data[["pointNumber"]] + 1
+      # print(combined_data$Nimi[[selected_row]])
+      selected_polygon <- combined_data@polygons[[selected_row]]
+      polygon_labelPt <- selected_polygon@labpt
+      # print(polygon_labelPt)
+      # polygon_labelPt <- selected_polygon@Polygons[[1]]@coords[1,]
+      proxy %>%
+        setView(lng=polygon_labelPt[1],lat=polygon_labelPt[2],zoom=12) %>%
+        addPolylines(weight=5, color="red", data=selected_polygon, layerId = "selected_district")
+    }
   })
 }
 
