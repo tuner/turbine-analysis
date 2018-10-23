@@ -1,30 +1,231 @@
 ---
-title: "Report"
-author: "Kari, Sara & Vladimir"
-date: "10 10 2018"
-output: html_document
+title: "Explaining Poll Results by Neighborhood Characteristics"
+author: "Kari Lavikka, Vladimir Dobrodeev"
+date: "23.10.2018"
+output:
+  pdf_document:
+    fig_caption: yes
+    toc: true
+    number_sections: true
+  html_document:
+    df_print: paged
+references:
+- URL: https://www.avoindata.fi/data/fi/dataset/helsinki-alueittain
+  id: helsinkiByRegions
+  issued:
+    year: 2015
+  title: Helsinki alueittain
+- URL: https://www.avoindata.fi/data/fi/dataset/helsingin-tuulivoimakysely-2015
+  id: turbine
+  issued:
+    year: 2015
+  title: Helsingin tuulivoimakysely
+header-includes: \usepackage{caption}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+source("../scripts/common.R")
+data <- load_data()
 ```
 
-## Including Plots
+# Introduction
 
-You can also embed plots, for example:
+Various entities counduct polls to find out the public opinion on some matter.
+However, it may be difficult to discover the factors that influence the opinions
+if no questions related to responders background are asked.
+Such background questions could be about common demographic attributes, such as
+age and sex, but their explanatory power may be insufficient.
+Having an excessive number of auxiliary questions may be more expensive,
+or it may make to poll less appealling to the potential responders.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+Ideally,
+the poll would only contain the most essential questions, and the background
+information would be obtained from another source. In practice, however,
+this is infeasible, as the responders would have to identify themselves,
+so that results form multiple polls or other data sources could be combined.
+
+We have observed that opinions and demographic charasteristics vary
+between different geographical regions. It is likely that factors such as
+accommodation prices, culture, or even architecture influence the choice
+of dwelling place. Based on this observation, we hypothesize that two data
+sets, a poll and background data, can be merged by geographical regions.
+Such regions may be, for instance, the districts or neighborhoods of a city.
+
+The merged data consists of data points that present the average opinion
+or charasteristic of each region. By studying how variables correlate
+among the regions, some influencing factors may be revealed.
+
+In this project we study factors that influence public opinion on
+wind turbine construction by joining the poll results with a census-dataset.
+We explain how the data is joined, visualize certain correlations, and
+find the most prominent factors.
+
+
+# Materials and Methods
+
+## The data sets
+
+### Primary data sets
+
+Our poll-dataset is about public opinion on wind turbine construction in Helsinki [@turbine].
+The data set contains individual responses to questions or claims such as
+"Wind turbines would influence positively to the public image of Helsinki.".
+However, it contains no background information beside the age, sex and
+*zip code* of the responders.
+
+We join the turbine data with a census dataset [@helsinkiByRegions] that contains 
+variables such as *mean income*, *families without cars*, *number of booze shops*, 
+and support for political parties. The data is grouped and averaged per
+district.
+
+
+### Auxiliary data sets
+
+The turbine data set contains *zip codes* of the responders. The census data set,
+however, contains *districts* of Helsinki. To harmonize the geographical regions,
+we need some auxiliary data.
+
+TODO: District boundaries
+
+TODO: Zip code areas
+
+TODO: Addresses
+
+## Manual data pre-processing
+
+The questions and other variables in the data sets where written in Finnish.
+We translated the relevant parts to English. The census data set contains
+over hundred variables. By gut-feeling, we chose a small subset of them for
+further processing.
+
+## Geographical area harmonization
+
+As stated earlier, the geographical areas of the two data sets are incompatible.
+The boundaries of the district and zip code areas line up partially, but some
+zip code area overlap with multiple districts, and some districts overlap multiple
+zip code areas. This has certain consequences. First, assigning a district for a
+poll responder is nontrivial. Second, we can not even be certain about the district
+when a zip code area overlaps with two districts.
+
+To assing a district for a responder based on their zip code, we built a set of
+conditional probability distributions. The distributions determine at which
+probability a responder belongs to a particular district if their zip code is known.
+
+There are multiple ways to build such distributions. A naiive method would be based
+on surface areas; how big a zip code area is, and how much it overlaps with the districts.
+However, many regions contain plenty of sea or crop fields, and the distribution
+would not reflect the actual population distribution.
+
+We chose to base the overlap-computation on the distribution of street addresses.
+Sea or crop fields have no addresses but buildings do. We calculate how the
+coordinates of the street addresses in a specific zip code area overlaps with all
+known districts. Even this method is not
+perfect though; some regions have dominantly single family houses while others have
+apartment houses. 
+
+We finally assigned a district for each poll responder by sampling the conditional
+probability distributions. Although the district may not be the true district 
+of the responder, it is still the most likely and spatially close given the available
+information.
+
+TODO: A picture
+
+## Data joining
+
+After harmonizing the regions, we computed per-district means for the poll data.
+As both of the two data sets now contain district identifiers, we joined them
+by the district. As a result we have a data frame that contains variables from
+both the poll results and the the census data.
+
+## Visualizing with scatter plot and simple linear regression
+
+To validate our hypotheses and study the correlation between the variables
+from the two data sets, we produced scatter plots and fitted a linear
+model. As the sample sizes had considerable variation between the district,
+we adjusted the point sizes in the plot based on the square root of the
+sample size. We also used weighted linear model to dampen the effect of
+sampling error that the small sample sizes cause. Figure \ref{fig:scatterplot}
+is an example of such plot.
+
+We also computed weighted correlation coefficients in order to have a single
+summary statistic that describes a pair of variables.
+
+```{r fig.height=4.5, fig.cap = "A scatter plot and a regression line. The X and Y axes present variables from the census and the poll data sets, respectively. \\label{fig:scatterplot}"}
+
+model_and_plot(data$census$VASL,
+               data$turbine$`Construction of wind turbines would have a positive impact on Helsinki's image.`,
+               axis_labels = list(
+                 "Support of Vasemmistoliitto",
+                 "Turbines would have positive impact..."
+               ))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+TODO: How about p-values?
+
+
+## Correlation matrix
+
+Instead of visualizing all possible variable combinations with scatter plots,
+we computed a weighted correlation matrix. We also computed significance
+levels for the correlations and visualized the results using correlation plot.
+The correlation matrix is further discussed in Section \ref{sec:results}.
+
+
+## Variable selection with regularized multiple linear regression
+
+Correlation, being similar to covariance, describes how two random variables
+vary together. But because only two variables are involved, it can not
+reveal complex phenomenon, such as how certain factors jointly influence
+an opinion.
+
+To get some insights to the joint influence, we normalized the variables, 
+and used multiple linear regression to reveal the factors that have either clearly
+positive or clearly negative influence on the opinions. The model was
+regularized using lasso, and the $\lambda$-value was determined by cross validation.
+Figure \ref{fig:multipleRegression} shows an example of variable selection on
+normalized data.
+
+
+```{r fig.height=3.5, fig.cap="Coefficients of a regularized multiple linear regression.\\label{fig:multipleRegression}"}
+
+explain_variable(data$turbine$`What do you feel if wind turbines would be built at the outer territorial waters (8-10 km from the coastline) of Helsinki?`)
+title("What do you feel if wind turbines would be built at the outer territorial waters of Helsinki?", cex.main = 0.7)
+
+```
+
+# Results
+\label{sec:results}
+
+The results are best summarized by a picture. Figure \ref{fig:correlationMatrix}
+displays a correlation matrix. The colors and sizes of the circles encode
+the correlation. A circle is only shown for variable pairs that have significant
+correlation, i.e. $\text{p-value} < 0.05$. 
+
+Generally, there is little variance between the different questions. Some factors
+in the census data are clearly visible. Blablaa.
+
+```{r fig.cap="The correlation matrix. Rows represent poll questions, columns represent census variables. \\label{fig:correlationMatrix}"}
+plot_correlations()
+```
+
+TODO: Plenty of pictures here
+
+
+TODO: Someting about political axis here or in Discussion
+
+# Discussion
+
+TODO: Mention webapp here
+
+TODO: Correlation is not causation
+
+# Authors' contributions
+
+*K.L.* did this.
+*V.D.* did that.
+
+# References
