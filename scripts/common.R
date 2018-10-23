@@ -95,3 +95,28 @@ plot_correlations <- function() {
            tl.cex = 0.5,
            tl.col = "black")
 }
+
+
+# Pretty plot of correlations
+plot_correlations_1 <- function(data) {
+  # https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html
+  library(corrplot)
+  library(weights)
+  
+  local_data <- data
+  
+  # TODO: The questions must be shorter
+  colnames(local_data$turbine) <- paste0(substring(colnames(local_data$turbine), 1, 90))
+  
+  # Create a correlation matrix, turbine survey vs. census
+  M <- with(local_data, wtd.cor(census, turbine, n))
+  
+  # Plot it
+  corrplot(M$correlation,
+           p.mat = M$p.value,
+           insig = "blank",
+           method = "circle",
+           #tl.cex = 0.7,
+           tl.cex = 0.5,
+           tl.col = "black")
+}

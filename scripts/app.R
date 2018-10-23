@@ -32,38 +32,60 @@ census.indices <- sapply(helsinki.districts.shapes$PERUS, function(x) which(proj
 ui.main <- navbarPage(
   "Poll factors!",
   tabPanel("Compare",
-      fluidPage(
-        h2("INSTRUCTIONS"),
-        uiOutput("compare.instructions.text"),
-        fluidRow(
-          column(6, mainPanel(
-            selectInput("question", h3("Select a question"), choices = question.select.choices, selected = 1, width = 500),
-            selectInput("factor", h3("Select a factor"), choices = factor.select.choices, selected = 1, width = 500)
-          )),
-          column(6,  mainPanel(
+    fluidPage(
+      h2("INSTRUCTIONS"),
+      uiOutput("compare.instructions.text"),
+      fluidRow(
+        column(4, mainPanel(
+            selectInput(
+              "question", 
+              h3("Select a question"), 
+              choices = question.select.choices, 
+              selected = 1, 
+              width = 500
+            ),
+            selectInput(
+              "factor",
+              h3("Select a factor"), 
+              choices = factor.select.choices, 
+              selected = 1,
+              width = 500
+            )
+          )
+        ),
+        column(8, mainPanel(
             h3("Regression model summary"),
             tableOutput("model.summary"),
             h3("Correlation summary"),
-            tableOutput("correlation.summary")
-          ))
+            tableOutput("correlation.summary"),
+            uiOutput("correlation.summary.text")
+          )
+        )
+      ),
+      hr(style="border:2px solid black"),
+      fluidRow(
+        column(6, mainPanel(
+            plotlyOutput("scatter.plot")
+          )
         ),
-        fluidRow(
-          column(
-            6, 
-            mainPanel(
-              plotlyOutput("scatter.plot")
-            )
-          ),
-          column(
-            6, 
-            mainPanel(
-              leafletOutput("helsinki.map")
-            )
+        column(6, mainPanel(
+            radioButtons(
+              "map.mode", 
+              label="Map mode", 
+              choices = list(
+                "Show responses distribution" = 1,
+                "Show factor distribution" = 2
+              ), 
+              selected=1, 
+              inline = TRUE
+            ),
+            leafletOutput("helsinki.map")
           )
         )
       )
+    )
   ),
-  tabPanel("Correlation matrix"),
+  tabPanel("Correlation matrix", fluidPage(plotOutput("corr.plot"))),
   tabPanel("Factors"),
   tabPanel("About")
 )
@@ -78,13 +100,31 @@ draw_selected_district <- function(selected_point, proxy){
     polygon_labelPt <- selected_polygon@labpt
     proxy %>%
       setView(lng=polygon_labelPt[1],lat=polygon_labelPt[2],zoom=12) %>%
-      addPolylines(weight=5, color="red", data=selected_polygon, layerId = "selected_district")
+      addPolylines(weight=10, color="red", data=selected_polygon, layerId = "selected_district")
+  }
+}
+
+get_correlation_text <- function(p.value){
+  if (p.value < 0.05){
+    strong("significant", style="background:rgb(255,128,169)")
+  }
+  else{
+    em("insignificant")
+  }
+}
+
+get_correlation_info <- function(correlation){
+  if (correlation >= 0){
+    span("positive", style="color:green")
+  }
+  else{
+    span("negative", style="color:red")
   }
 }
 
 server <- function(input,output,session){
   vars <- reactiveValues()
-  
+
   proxy <- leafletProxy("helsinki.map")
 
   observe({
@@ -96,9 +136,53 @@ server <- function(input,output,session){
     vars$model <- lm(y ~ x, weights=project.data$n)
     # names(vars$model) <- c("Estimate", "Standard error", "t-value", "p-value")
     vars$corr <- wtd.cor(y, x, project.data$n)
-    
     # Handle plot click or select event
     draw_selected_district(event_data("plotly_click"), proxy)
+    
+    if (input$map.mode==1){
+      column.id <- strtoi(input$question)
+      shapes.values = project.data$turbine[census.indices, column.id][[1]]
+      domain = -2:2
+      map.name <- names(project.data$turbine)[column.id]
+      proxy %>% removeShape(helsinki.districts.shapes$PERUS) %>% clearControls()
+      proxy %>%
+        addPolygons(
+          data=helsinki.districts.shapes,
+          weight=1,
+          fillColor=~colorNumeric("PiYG", domain)(shapes.values),
+          fillOpacity = 0.5,
+          layerId = ~PERUS
+        ) %>%
+        addLegend(
+          position="bottomright",
+          pal=colorNumeric("PiYG", domain),
+          values=shapes.values,
+          title=substr(map.name,1,10)
+        )
+    }
+    else{
+      column.id <- strtoi(input$factor)
+      shapes.values = project.data$census[census.indices, column.id][[1]]
+      domain = 0:max(project.data$census[census.indices, column.id][[1]])
+      map.name <- names(project.data$census)[column.id]
+      proxy %>% removeShape(helsinki.districts.shapes$PERUS) %>% clearControls()
+      proxy %>%
+        addPolygons(
+          data=helsinki.districts.shapes,
+          weight=1,
+          fillColor=~colorNumeric("PiYG", domain)(shapes.values),
+          fillOpacity = 0.5,
+          layerId = ~PERUS
+        ) %>%
+        addLegend(
+          position="bottomright",
+          pal=colorNumeric("PiYG", domain),
+          values=shapes.values,
+          title=substr(map.name,1,10)
+        )
+    }
+    
+    
   })
 
   output$compare.instructions.text <- renderUI(strong("You could choose question and factor and can easily see correlations"))
@@ -106,55 +190,72 @@ server <- function(input,output,session){
   output$scatter.plot <- renderPlotly({
     colors <- rep("green",nrow(project.data$census))
     plot_ly() %>%
-    add_trace(
-      name="Districts",
-      x=vars$x,
-      y=vars$y,
-      text = helsinki.districts.shapes$Nimi[leaflet.indicies],
-      marker=list(
-        color=colors,
-        size = sqrt(project.data$n)
-      ),
-      mode="markers"
-    ) %>%
-    add_trace(
-      name="Regression line",
-      mode="lines",
-      x=vars$x,
-      y=fitted(vars$model),
-      marker=list()
-    )
+      add_trace(
+        name="Districts",
+        x=vars$x,
+        y=vars$y,
+        text = helsinki.districts.shapes$Nimi[leaflet.indicies],
+        mode="markers",
+        marker=list(
+          color=colors,
+          size = sqrt(project.data$n)
+        )
+      ) %>%
+      add_trace(
+        name="Regression line",
+        mode="lines",
+        x=vars$x,
+        y=fitted(vars$model),
+        marker=list()
+      )
   })
 
   output$helsinki.map <- renderLeaflet({
-        question.id<-strtoi(input$question)
-        leaflet(helsinki.districts.shapes) %>%
-          addTiles() %>%
-          fitBounds(24.78516, 60.09772, 25.27679, 60.31403) %>%
-          addPolygons(
-            weight=1,
-            fillColor=~colorNumeric("PiYG", -2:2)(project.data$turbine[census.indices, question.id][[1]]),
-            fillOpacity = 0.5
-          ) %>%
-          addLegend(
-            position="bottomright",
-            pal=colorNumeric("PiYG", -2:2),
-            values=project.data$turbine[leaflet.indicies, question.id][[1]],
-            title=substr(names(project.data$turbine)[question.id],1,10)
-          )
-      })
+    leaflet() %>%
+      addTiles() %>%
+      fitBounds(24.78516, 60.09772, 25.27679, 60.31403)
+  })
 
-
-    output$model.summary <- renderTable({
-        tbl<-as.data.frame(coef(summary(vars$model)))
-        names(tbl)<-c("Estimate","Standard error","t-value","p-value")
-        tbl
-     }, digit=5, rownames = TRUE)
-    output$correlation.summary <- renderTable({
-        tbl<-as.data.frame(vars$corr)
-        names(tbl)<-c("Correlation","Standard error","t-value","p-value")
-        tbl
-    }, digit=5, rownames = TRUE)
+  output$model.summary <- renderTable(
+    {
+      tbl<-as.data.frame(coef(summary(vars$model)))
+      names(tbl)<-c("Estimate","Standard error","t-value","p-value")
+      row.names(tbl) <- c("Intercept","Slope")
+      tbl
+    }, 
+    digit=5, 
+    rownames = TRUE
+  )
+  
+  output$correlation.summary <- renderTable(
+    {
+      tbl<-as.data.frame(vars$corr)
+      names(tbl)<-c("Correlation","Standard error","t-value","p-value")
+      row.names(tbl) <- c("Corr(Response, Factor)")
+      tbl
+    }, 
+    digit=5, 
+    rownames = TRUE
+  )
+  
+  output$correlation.summary.text <- renderUI({
+    mainPanel(
+      h3("Results"),
+      p("Correlation between responses to question \"",
+        names(project.data$turbine)[strtoi(input$question)],
+        "\" and factor",
+        names(project.data$census)[strtoi(input$factor)],
+        "is statistically",
+        get_correlation_text(vars$corr[4]),
+        "and",
+        get_correlation_info(vars$corr[1]),
+        style="font-size:14pt"
+      ),
+      width=1500
+    )
+  })
+  
+  output$corr.plot <- renderPlot(plot_correlations_1(project.data))
 }
 
 shinyApp(ui.main, server)
