@@ -33,8 +33,16 @@ ui.main <- navbarPage(
   "Poll factors!",
   tabPanel("Compare",
     fluidPage(
-      h2("INSTRUCTIONS"),
-      uiOutput("compare.instructions.text"),
+      h3("INSTRUCTIONS"),
+      fluidRow(
+        p(style="font-size:14pt", "This page provides some visualtions for correlation between responses and 
+          population/districts characteristics. You can choose one of questions and some factor, which
+          might affect it (for example, percent of Finnish-speaking inhabitants). The page will show 
+          some information about correlation and linear regression model. It will also show a scatter plot
+          showing how question and factor values are related. If you click a point at scatter plot,
+          a corresponding district will be highlited on the map. The map can show geographical distributions
+          for responses and factor value.")
+      ),
       fluidRow(
         column(4, mainPanel(
             selectInput(
@@ -42,14 +50,14 @@ ui.main <- navbarPage(
               h3("Select a question"), 
               choices = question.select.choices, 
               selected = 1, 
-              width = 500
+              width = 700
             ),
             selectInput(
               "factor",
               h3("Select a factor"), 
               choices = factor.select.choices, 
               selected = 1,
-              width = 500
+              width = 700
             )
           )
         ),
@@ -85,14 +93,29 @@ ui.main <- navbarPage(
       )
     )
   ),
-  tabPanel("Correlation matrix", fluidPage(plotOutput("corr.plot"))),
+  tabPanel("Correlation matrix", fluidPage(
+      h3("INSTRUCTIONS"),
+      fluidRow(
+        p(style="font-size:14pt", "This page shows joint information about correlations between factors and 
+          responses. This page just shows the information.")
+      ),
+      plotOutput("corr.plot")
+    )
+  ),
   tabPanel("Factors", mainPanel(
+    h3("INSTRUCTIONS"),
+    fluidRow(
+      p(style="font-size:14pt", "This page shows joint information about how different factors contribute to
+        responses. Size of a bar shows how strong a correlation between responses and a
+        factor is. To see the information for a certain question,
+        this question should be selected from the dropdown list.")
+    ),
     selectInput(
       "question1", 
       h3("Select a question"), 
       choices = question.select.choices, 
       selected = 1, 
-      width = 500
+      width = 800
     ),
     plotOutput("reduced.factors.plot")
   )),
@@ -193,8 +216,6 @@ server <- function(input,output,session){
     
     
   })
-
-  output$compare.instructions.text <- renderUI(strong("You could choose question and factor and can easily see correlations"))
 
   output$scatter.plot <- renderPlotly({
     colors <- rep("green",nrow(project.data$census))
