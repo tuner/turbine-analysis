@@ -86,7 +86,16 @@ ui.main <- navbarPage(
     )
   ),
   tabPanel("Correlation matrix", fluidPage(plotOutput("corr.plot"))),
-  tabPanel("Factors"),
+  tabPanel("Factors", mainPanel(
+    selectInput(
+      "question1", 
+      h3("Select a question"), 
+      choices = question.select.choices, 
+      selected = 1, 
+      width = 500
+    ),
+    plotOutput("reduced.factors.plot")
+  )),
   tabPanel("About")
 )
 
@@ -256,6 +265,11 @@ server <- function(input,output,session){
   })
   
   output$corr.plot <- renderPlot(plot_correlations_1(project.data))
+  
+  output$reduced.factors.plot <- renderPlot({
+    question.id <- strtoi(input$question1)
+    explain_variable_1(project.data$turbine[,question.id][[1]], project.data)
+  })
 }
 
 shinyApp(ui.main, server)

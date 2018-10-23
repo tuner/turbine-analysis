@@ -71,6 +71,22 @@ explain_variable <- function(variable) {
           cex.axis = 0.7)
 }
 
+explain_variable_1 <- function(variable, data) {
+  library(glmnet)
+  model <- glmnet(as.matrix(scale(data$census)), variable)
+  
+  # Use cross-validation to find good lambda
+  model.cv <- cv.glmnet(as.matrix(scale(data$census)), variable)
+  lambda <- model.cv$lambda.min
+  
+  par(mar = c(9, 3, 2, 0.5))
+  # Plot, leave intercept out
+  barplot(t(as.matrix(coef(model, s = lambda)))[, -1],
+          las = 2,
+          cex.names = 0.7,
+          cex.axis = 0.7)
+}
+
 
 # Pretty plot of correlations
 plot_correlations <- function() {
