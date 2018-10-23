@@ -12,8 +12,8 @@ load_data <- function(min_n = 0) {
   
   # Subset the data by columns
   list(
-    distric_id = unlist(combined_data[, 1]),
-    turbine = combined_data[, 2:17],
+    district_id = unlist(combined_data[, 1]),
+    turbine = combined_data[, setdiff(2:17, 6:7)],
     n = unlist(combined_data[, 18]),
     district_name = unlist(combined_data[, 19]),
     census = combined_data[, 20:39]

@@ -3,109 +3,158 @@ library(leaflet)
 library(sp)
 library(shiny)
 library(plotly)
+library(weights)
 
-# Read districts shapes
-# Data are read for 2015 as an actual poll was done that year
-helsinki_districts <- spTransform(
-  readOGR(file.path("..","raw_data","piirialuejako-1995-2016.gpkg"), layer="perus_2015"),
+source("common.R")
+
+# Loading projects data
+project.data <- load_data()
+
+# Loading geospatial data (Helsinki district shapes)
+helsinki.districts.shapes <- spTransform(
+  readOGR(file.path("..", "raw_data", "piirialuejako-1995-2016.gpkg"), layer="perus_2015"),
   CRS("+proj=longlat")
 )
 
-# Prepare districts data set for merge
-names(helsinki_districts)[names(helsinki_districts)=="PERUS"] <- "District id"
-
-# Read "census" data
-census_data <- read.csv(file.path("..", "derived_data", "combined_data.csv"), sep="\t", fileEncoding = "utf8", encoding = "utf8", check.names = FALSE)
-
-rb_options <- list()
-
-for (i in setdiff(2:17,12:13)){
-  rb_options[names(census_data)[i]] <- i + 6
+question.select.choices <- list()
+for (i in 1:length(names(project.data$turbine))){
+  question.select.choices[[names(project.data$turbine)[i]]] <- i
 }
 
-# Merge census data and districts shapes
-combined_data <- merge(helsinki_districts, census_data, by="District id")
+factor.select.choices <- list()
+for (i in 1:length(names(project.data$census))){
+  factor.select.choices[[names(project.data$census)[i]]] <- i
+}
 
-factors <- 26:length(names(combined_data@data))
-plots_id <- lapply(factors, function(x){ paste0(names(combined_data@data)[x], "plot") })
-tabs <- lapply(factors, function(x){
-  tabPanel(names(combined_data@data)[x], plotlyOutput(plots_id[x - min(factors) + 1]))
-})
+leaflet.indicies <- sapply(project.data$district_id, function(x) which(helsinki.districts.shapes$PERUS == x))
+census.indices <- sapply(helsinki.districts.shapes$PERUS, function(x) which(project.data$district_id == x))
 
-ui <- fluidPage(
-  titlePanel("Helsinki map"),
-  sidebarLayout(
-                sidebarPanel("Questions",
-                  radioButtons("question", label="", choices = rb_options)
-                ),
-                mainPanel("Factors information",
-                          uiOutput("Factors"),
-                          leafletOutput("helsinki_map")
-                )
-  )
+ui.main <- navbarPage(
+  "Poll factors!",
+  tabPanel("Compare",
+      fluidPage(
+        h2("INSTRUCTIONS"),
+        uiOutput("compare.instructions.text"),
+        fluidRow(
+          column(6, mainPanel(
+            selectInput("question", h3("Select a question"), choices = question.select.choices, selected = 1, width = 500),
+            selectInput("factor", h3("Select a factor"), choices = factor.select.choices, selected = 1, width = 500)
+          )),
+          column(6,  mainPanel(
+            h3("Regression model summary"),
+            tableOutput("model.summary"),
+            h3("Correlation summary"),
+            tableOutput("correlation.summary")
+          ))
+        ),
+        fluidRow(
+          column(
+            6, 
+            mainPanel(
+              plotlyOutput("scatter.plot")
+            )
+          ),
+          column(
+            6, 
+            mainPanel(
+              leafletOutput("helsinki.map")
+            )
+          )
+        )
+      )
+  ),
+  tabPanel("Correlation matrix"),
+  tabPanel("Factors"),
+  tabPanel("About")
 )
 
-server <- function(input, output, session){
-  output$Factors <- renderUI({
-    do.call(tabsetPanel, tabs)
-  })
-  
-  lapply(factors, function(f) { output[[plots_id[[f - min(factors) + 1]]]] <- renderPlotly({
-      column_id<-strtoi(input$question)
-      plot_ly(
-        type="scatter",
-        mode="markers",
-        y = combined_data@data[,column_id], 
-        x = combined_data@data[,f],
-        size = combined_data$n,
-        symbol = "circle"
-        # name = combined_data$Nimi
-        #sizes = c(min(combined_data$n), max(combined_data$n))
-      )
-    }) 
-  })
+selected_row <- NULL
 
-  # observeEvent(input$helsinki_map_shape_click, {
-  #   click <- input$helsinki_map_shape_click
-  # })
-  
-  output$helsinki_map <- renderLeaflet({
-    column_id<-strtoi(input$question)
-    leaflet(combined_data) %>%
-      addTiles() %>%
-      fitBounds(24.78516, 60.09772, 25.27679, 60.31403) %>%
-      addPolygons(
-        weight=1,
-        fillColor=~colorNumeric("PiYG", -2:2)(combined_data@data[,column_id]),
-        fillOpacity = 0.5,
-        layerId = ~`District id`
-      ) %>%
-      addLegend(
-        position="bottomright", 
-        pal=colorNumeric("PiYG", -2:2),
-        values=~combined_data@data[,column_id],
-        title=names(combined_data@data)[column_id]
-      )
-  })
-  
-  proxy <- leafletProxy("helsinki_map")
-  
-  observe({
-    plot_data <- event_data("plotly_click")
-    # print(plot_data)
-    if (is.null(plot_data)==FALSE){
-      proxy %>% removeShape("selected_district")
-      selected_row <- plot_data[["pointNumber"]] + 1
-      # print(combined_data$Nimi[[selected_row]])
-      selected_polygon <- combined_data@polygons[[selected_row]]
-      polygon_labelPt <- selected_polygon@labpt
-      # print(polygon_labelPt)
-      # polygon_labelPt <- selected_polygon@Polygons[[1]]@coords[1,]
-      proxy %>%
-        setView(lng=polygon_labelPt[1],lat=polygon_labelPt[2],zoom=12) %>%
-        addPolylines(weight=5, color="red", data=selected_polygon, layerId = "selected_district")
-    }
-  })
+draw_selected_district <- function(selected_point, proxy){
+  if (is.null(selected_point) == FALSE && selected_point[["curveNumber"]] == 0){
+    proxy %>% removeShape("selected_district")
+    selected_row <- selected_point[["pointNumber"]] + 1
+    selected_polygon <- helsinki.districts.shapes@polygons[[leaflet.indicies[[selected_row]]]]
+    polygon_labelPt <- selected_polygon@labpt
+    proxy %>%
+      setView(lng=polygon_labelPt[1],lat=polygon_labelPt[2],zoom=12) %>%
+      addPolylines(weight=5, color="red", data=selected_polygon, layerId = "selected_district")
+  }
 }
 
-shinyApp(ui, server)
+server <- function(input,output,session){
+  vars <- reactiveValues()
+  
+  proxy <- leafletProxy("helsinki.map")
+
+  observe({
+    # Fill reactive varibale (to avoid recalculations)
+    x <- as.list(project.data$census[,strtoi(input$factor)])[[1]]
+    y <- as.list(project.data$turbine[,strtoi(input$question)])[[1]]
+    vars$x <- x
+    vars$y <- y
+    vars$model <- lm(y ~ x, weights=project.data$n)
+    # names(vars$model) <- c("Estimate", "Standard error", "t-value", "p-value")
+    vars$corr <- wtd.cor(y, x, project.data$n)
+    
+    # Handle plot click or select event
+    draw_selected_district(event_data("plotly_click"), proxy)
+  })
+
+  output$compare.instructions.text <- renderUI(strong("You could choose question and factor and can easily see correlations"))
+
+  output$scatter.plot <- renderPlotly({
+    colors <- rep("green",nrow(project.data$census))
+    plot_ly() %>%
+    add_trace(
+      name="Districts",
+      x=vars$x,
+      y=vars$y,
+      text = helsinki.districts.shapes$Nimi[leaflet.indicies],
+      marker=list(
+        color=colors,
+        size = sqrt(project.data$n)
+      ),
+      mode="markers"
+    ) %>%
+    add_trace(
+      name="Regression line",
+      mode="lines",
+      x=vars$x,
+      y=fitted(vars$model),
+      marker=list()
+    )
+  })
+
+  output$helsinki.map <- renderLeaflet({
+        question.id<-strtoi(input$question)
+        leaflet(helsinki.districts.shapes) %>%
+          addTiles() %>%
+          fitBounds(24.78516, 60.09772, 25.27679, 60.31403) %>%
+          addPolygons(
+            weight=1,
+            fillColor=~colorNumeric("PiYG", -2:2)(project.data$turbine[census.indices, question.id][[1]]),
+            fillOpacity = 0.5
+          ) %>%
+          addLegend(
+            position="bottomright",
+            pal=colorNumeric("PiYG", -2:2),
+            values=project.data$turbine[leaflet.indicies, question.id][[1]],
+            title=substr(names(project.data$turbine)[question.id],1,10)
+          )
+      })
+
+
+    output$model.summary <- renderTable({
+        tbl<-as.data.frame(coef(summary(vars$model)))
+        names(tbl)<-c("Estimate","Standard error","t-value","p-value")
+        tbl
+     }, digit=5, rownames = TRUE)
+    output$correlation.summary <- renderTable({
+        tbl<-as.data.frame(vars$corr)
+        names(tbl)<-c("Correlation","Standard error","t-value","p-value")
+        tbl
+    }, digit=5, rownames = TRUE)
+}
+
+shinyApp(ui.main, server)
