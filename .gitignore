@@ -9,4 +9,5 @@
 .vscode/
 .Rproj.user
 report/*.html
+report/*.pdf
 !report/reveal_header.html
