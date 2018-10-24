@@ -8,7 +8,7 @@ library(weights)
 setwd("scripts")
 source("common.R")
 
-# Loading projects data
+# Loading census and poll data (joint data set)
 project.data <- load_data()
 
 # Loading geospatial data (Helsinki district shapes)
@@ -17,19 +17,30 @@ helsinki.districts.shapes <- spTransform(
   CRS("+proj=longlat")
 )
 
+# Forming a list of questions
+# This list will be used to create dropdown list of questions
+# Indicies of the list are questions and values are corresponding data set column numbers
 question.select.choices <- list()
 for (i in 1:length(names(project.data$turbine))){
   question.select.choices[[names(project.data$turbine)[i]]] <- i
 }
 
+
+# Forming a list of factors (census variables)
+# This list will be used to create dropdown list of factors
+# Indicies of the list are factors and values are corresponding data set column numbers
 factor.select.choices <- list()
 for (i in 1:length(names(project.data$census))){
   factor.select.choices[[names(project.data$census)[i]]] <- i
 }
 
+# As districts in joint data set and in geospatial data set are provided in different order
+# there should be a way to map districts between two datasets
+# Following two lines are used to create this mapping
 leaflet.indicies <- sapply(project.data$district_id, function(x) which(helsinki.districts.shapes$PERUS == x))
 census.indices <- sapply(helsinki.districts.shapes$PERUS, function(x) which(project.data$district_id == x))
 
+# Application UI
 ui.main <- navbarPage(
   "Poll explainer!",
   tabPanel("Compare",
@@ -123,6 +134,7 @@ ui.main <- navbarPage(
     ),
     plotOutput("reduced.factors.plot")
   )),
+  
   tabPanel("About",
            h3("What is this?"),
            p("With this application, you can study which census variables correlate with 
@@ -152,11 +164,17 @@ ui.main <- navbarPage(
   )
 )
 
+# Row selected in joint data set (allows to identify a selected district)
 selected_row <- NULL
 
+# Draws a chosen district at Helsinki map
 draw_selected_district <- function(selected_point, proxy){
+  # District is drwan only if some marker is clicked
+  # If no marker is clicked or user clicks on regression line it should not produce any effect
   if (is.null(selected_point) == FALSE && selected_point[["curveNumber"]] == 0){
+    # Clear previously selected district
     proxy %>% removeShape("selected_district")
+    # Point index starts with 0
     selected_row <- selected_point[["pointNumber"]] + 1
     selected_polygon <- helsinki.districts.shapes@polygons[[leaflet.indicies[[selected_row]]]]
     polygon_labelPt <- selected_polygon@labpt
@@ -166,6 +184,7 @@ draw_selected_district <- function(selected_point, proxy){
   }
 }
 
+# Prints text telling wether a correlation is statistically significant or not
 get_correlation_text <- function(p.value){
   if (p.value < 0.05){
     strong("significant", style="color: green")
@@ -175,6 +194,7 @@ get_correlation_text <- function(p.value){
   }
 }
 
+# Prints text telling wether a ccorrelation positive or negative
 get_correlation_info <- function(correlation){
   if (correlation >= 0){
     span("positive", style="color:green")
@@ -184,24 +204,25 @@ get_correlation_info <- function(correlation){
   }
 }
 
+# Provides a back-end for Shiny app
 server <- function(input,output,session){
   vars <- reactiveValues()
 
   proxy <- leafletProxy("helsinki.map")
 
   observe({
-    # Fill reactive varibale (to avoid recalculations)
+    # Assign correlation-related varibales (to avoid recalculations)
     x <- as.list(project.data$census[,strtoi(input$factor)])[[1]]
     y <- as.list(project.data$turbine[,strtoi(input$question)])[[1]]
     vars$x <- x
     vars$y <- y
     vars$model <- lm(y ~ x, weights=project.data$n)
-    # names(vars$model) <- c("Estimate", "Standard error", "t-value", "p-value")
     vars$corr <- wtd.cor(y, x, project.data$n)
     # Handle plot click or select event
     draw_selected_district(event_data("plotly_click"), proxy)
     
     if (input$map.mode==1){
+      # Show a map with responses distribution
       column.id <- strtoi(input$question)
       shapes.values = project.data$turbine[census.indices, column.id][[1]]
       domain = -2:2
@@ -223,6 +244,7 @@ server <- function(input,output,session){
         )
     }
     else{
+      # Show a map with factor's values distribution
       column.id <- strtoi(input$factor)
       shapes.values = project.data$census[census.indices, column.id][[1]]
       domain = 0:max(project.data$census[census.indices, column.id][[1]])
@@ -246,7 +268,8 @@ server <- function(input,output,session){
     
     
   })
-
+  
+  # Draws a scatter plot and a regression line
   output$scatter.plot <- renderPlotly({
     colors <- rep("green",nrow(project.data$census))
     plot_ly() %>%
@@ -274,13 +297,15 @@ server <- function(input,output,session){
         yaxis = list(title = colnames(project.data$turbine)[strtoi(input$question)])
       )
   })
-
+  
+  # Draws a map of Helsinki
   output$helsinki.map <- renderLeaflet({
     leaflet() %>%
       addTiles() %>%
       fitBounds(24.78516, 60.09772, 25.27679, 60.31403)
   })
-
+  
+  # Prints a linear regression model summary in text format
   output$model.summary <- renderTable(
     {
       tbl<-as.data.frame(coef(summary(vars$model)))
@@ -292,6 +317,7 @@ server <- function(input,output,session){
     rownames = TRUE
   )
   
+  # Prints a correlation summary in text format
   output$correlation.summary <- renderTable(
     {
       tbl<-as.data.frame(vars$corr)
@@ -320,8 +346,10 @@ server <- function(input,output,session){
     )
   })
   
+  # Draws a fancy correlation plot
   output$corr.plot <- renderPlot(plot_correlations(project.data, cex = 0.9))
   
+  # Draws correlation between a question and factors
   output$reduced.factors.plot <- renderPlot({
     question.id <- strtoi(input$question1)
     explain_variable(project.data$turbine[,question.id][[1]], project.data, cex = 0.9)
