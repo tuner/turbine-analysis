@@ -5,6 +5,7 @@ library(shiny)
 library(plotly)
 library(weights)
 
+setwd("scripts")
 source("common.R")
 
 # Loading projects data
