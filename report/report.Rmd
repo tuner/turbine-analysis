@@ -236,7 +236,7 @@ selection on normalized data.
 
 ```{r fig.height=3.5, fig.cap="Coefficients of a regularized multiple linear regression.\\label{fig:multipleRegression}"}
 
-explain_variable(data$turbine$`What do you feel if wind turbines would be built at the outer territorial waters (8-10 km from the coastline) of Helsinki?`)
+explain_variable(data$turbine$`What do you feel if wind turbines would be built at the outer territorial waters (8-10 km from the coastline) of Helsinki?`, data)
 title("What do you feel if wind turbines would be built at the outer territorial waters of Helsinki?", cex.main = 0.7)
 
 ```
@@ -263,7 +263,7 @@ variable results. Some of them, such as the question shown in Figure
 Others produce very different results.
 
 ```{r fig.cap="The correlation matrix. Rows represent poll questions, columns represent census variables. \\label{fig:correlationMatrix}"}
-plot_correlations()
+plot_correlations(data)
 ```
 
 # Discussion

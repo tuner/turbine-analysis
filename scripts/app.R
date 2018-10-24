@@ -30,53 +30,58 @@ leaflet.indicies <- sapply(project.data$district_id, function(x) which(helsinki.
 census.indices <- sapply(helsinki.districts.shapes$PERUS, function(x) which(project.data$district_id == x))
 
 ui.main <- navbarPage(
-  "Poll factors!",
+  "Poll explainer!",
   tabPanel("Compare",
     fluidPage(
-      h3("INSTRUCTIONS"),
       fluidRow(
-        p(style="font-size:14pt", "This page provides some visualtions for correlation between responses and 
-          population/districts characteristics. You can choose one of questions and some factor, which
-          might affect it (for example, percent of Finnish-speaking inhabitants). The page will show 
-          some information about correlation and linear regression model. It will also show a scatter plot
-          showing how question and factor values are related. If you click a point at scatter plot,
-          a corresponding district will be highlited on the map. The map can show geographical distributions
-          for responses and factor value.")
       ),
       fluidRow(
-        column(4, mainPanel(
+        column(6, verticalLayout(
+          p(
+            "This page visualizes correlations between poll responses and 
+            population/districts characteristics based on geographical districts.
+            To compare, choose a question and a
+            census variable. The scatter plot provides a visual overview and
+            more exact results are provided as model summaries. The point size in the
+            plot encodes the number of responders in the district.
+            If you click a point in the scatter plot, a corresponding district will be highlited on the map.
+            The map can show geographical distributions for either poll response or the census variable.
+            The domain of poll responses is from -2 (disagree) to 2 (agree).
+            "),
             selectInput(
               "question", 
-              h3("Select a question"), 
+              label = h4("Poll question"), 
               choices = question.select.choices, 
-              selected = 1, 
-              width = 700
+              selected = 3, 
+              width = "100%"
             ),
             selectInput(
               "factor",
-              h3("Select a factor"), 
+              label = h4("Census variable (a factor)"), 
               choices = factor.select.choices, 
-              selected = 1,
-              width = 700
+              selected = 10,
+              width = "100%"
             )
           )
         ),
-        column(8, mainPanel(
-            h3("Regression model summary"),
+        column(6, verticalLayout(
+            h4("Regression model summary"),
             tableOutput("model.summary"),
-            h3("Correlation summary"),
+            h4("Correlation summary"),
             tableOutput("correlation.summary"),
             uiOutput("correlation.summary.text")
           )
         )
       ),
-      hr(style="border:2px solid black"),
+      
+      hr(style="border: 0; border-bottom: 1px dashed gray"),
+      
       fluidRow(
-        column(6, mainPanel(
-            plotlyOutput("scatter.plot")
-          )
+        style="margin-bottom: 20px",
+        column(6,
+               plotlyOutput("scatter.plot")
         ),
-        column(6, mainPanel(
+        column(6, verticalLayout(
             radioButtons(
               "map.mode", 
               label="Map mode", 
@@ -93,33 +98,57 @@ ui.main <- navbarPage(
       )
     )
   ),
+  
   tabPanel("Correlation matrix", fluidPage(
-      h3("INSTRUCTIONS"),
-      fluidRow(
-        p(style="font-size:14pt", "This page shows joint information about correlations between factors and 
-          responses. This page just shows the information.")
-      ),
+    p("Correlation matrix visualizes correlations between all
+      variable pairs. Only correlations that have statistical significance,
+      i.e. p-value < 0.5, are shown. This plot is static;
+      no fancy interactivity here, sorry!"),
       plotOutput("corr.plot")
     )
   ),
-  tabPanel("Factors", mainPanel(
-    h3("INSTRUCTIONS"),
-    fluidRow(
-      p(style="font-size:14pt", "This page shows joint information about how different factors contribute to
-        responses. Size of a bar shows how strong a correlation between responses and a
-        factor is. To see the information for a certain question,
-        this question should be selected from the dropdown list.")
-    ),
+  
+  tabPanel("Factors", verticalLayout(
+    p("This page shows the coefficients of a regularized multiple linear regression.
+      The data has first been normalized (centered and unit variance).
+      The bars show a combination of census variables that best explain
+      the response to the chosen question."),
     selectInput(
       "question1", 
-      h3("Select a question"), 
+      h4("Poll question"), 
       choices = question.select.choices, 
-      selected = 1, 
-      width = 800
+      selected = 3,
+      width = "100%"
     ),
     plotOutput("reduced.factors.plot")
   )),
-  tabPanel("About")
+  tabPanel("About",
+           h3("What is this?"),
+           p("With this application, you can study which census variables correlate with 
+             responses to a poll about wind turbine construction."),
+           p("The application is a part of a project on the Introduction to Data Science
+             course provided by the University of Helsinki."),
+           
+           h3("Who made this?"),
+           p("The project team consists of Kari Lavikka and Vladimir Dobrodeev."),
+           
+           h3("Where did you get the data?"),
+           p("The data are publicly available. Their sources are as follows:"),
+           HTML("
+<ul>
+  <li>Helsingin tuulivoimakysely, <a href=\"https://www.avoindata.fi/data/fi/dataset/helsingin-tuulivoimakysely-2015\">https://www.avoindata.fi/data/fi/dataset/helsingin-tuulivoimakysely-2015</a></li>
+  <li>Helsinki alueittain, <a href=\"https://www.avoindata.fi/data/fi/dataset/helsinki-alueittain\">https://www.avoindata.fi/data/fi/dataset/helsinki-alueittain</a></li>
+  <li>Helsingin piirijako, <a href=\"https://www.avoindata.fi/data/fi/dataset/helsingin-piirijako\">https://www.avoindata.fi/data/fi/dataset/helsingin-piirijako</a></li>
+  <li>OpenAddresses, The free and open global address collection, <a href=\"https://openaddresses.io/\">https://openaddresses.io/</a></li>
+</ul>
+                "),
+           
+           h3("Anything else?"),
+           HTML("
+                <p>Yeah, the source code and everything related to the project is available on GitHub:
+                <a href=\"https://github.com/tuner/turbine-analysis\">https://github.com/tuner/turbine-analysis</a></p>")
+           
+  )
 )
 
 selected_row <- NULL
@@ -138,7 +167,7 @@ draw_selected_district <- function(selected_point, proxy){
 
 get_correlation_text <- function(p.value){
   if (p.value < 0.05){
-    strong("significant", style="background:rgb(255,128,169)")
+    strong("significant", style="color: green")
   }
   else{
     em("insignificant")
@@ -202,13 +231,13 @@ server <- function(input,output,session){
         addPolygons(
           data=helsinki.districts.shapes,
           weight=1,
-          fillColor=~colorNumeric("PiYG", domain)(shapes.values),
+          fillColor=~colorNumeric("YlOrRd", domain)(shapes.values),
           fillOpacity = 0.5,
           layerId = ~PERUS
         ) %>%
         addLegend(
           position="bottomright",
-          pal=colorNumeric("PiYG", domain),
+          pal=colorNumeric("YlOrRd", domain),
           values=shapes.values,
           title=substr(map.name,1,10)
         )
@@ -228,7 +257,7 @@ server <- function(input,output,session){
         mode="markers",
         marker=list(
           color=colors,
-          size = sqrt(project.data$n)
+          size = sqrt(project.data$n / max(project.data$n)) * 20
         )
       ) %>%
       add_trace(
@@ -237,6 +266,11 @@ server <- function(input,output,session){
         x=vars$x,
         y=fitted(vars$model),
         marker=list()
+      ) %>%
+      layout(
+        showlegend = FALSE, # Meanings are pretty obvious anyway
+        xaxis = list(title = colnames(project.data$census)[strtoi(input$factor)]),
+        yaxis = list(title = colnames(project.data$turbine)[strtoi(input$question)])
       )
   })
 
@@ -269,28 +303,42 @@ server <- function(input,output,session){
   )
   
   output$correlation.summary.text <- renderUI({
-    mainPanel(
-      h3("Results"),
-      p("Correlation between responses to question \"",
-        names(project.data$turbine)[strtoi(input$question)],
-        "\" and factor",
-        names(project.data$census)[strtoi(input$factor)],
-        "is statistically",
-        get_correlation_text(vars$corr[4]),
-        "and",
+    verticalLayout(
+      h4("Results"),
+      p(
+        paste0("Correlation between responses to question \"",
+               names(project.data$turbine)[strtoi(input$question)],
+               "\" and factor \"",
+               names(project.data$census)[strtoi(input$factor)],
+               "\" is "),
         get_correlation_info(vars$corr[1]),
-        style="font-size:14pt"
-      ),
-      width=1500
+        "and statistically",
+        get_correlation_text(vars$corr[4]),
+        "."
+      )
     )
   })
   
-  output$corr.plot <- renderPlot(plot_correlations_1(project.data))
+  output$corr.plot <- renderPlot(plot_correlations(project.data, cex = 0.9))
   
   output$reduced.factors.plot <- renderPlot({
     question.id <- strtoi(input$question1)
-    explain_variable_1(project.data$turbine[,question.id][[1]], project.data)
+    explain_variable(project.data$turbine[,question.id][[1]], project.data, cex = 0.9)
   })
 }
 
-shinyApp(ui.main, server)
+shinyApp(
+  tagList(
+    tags$head(tags$style(
+      HTML("
+p, table {
+  font-size: 13px;
+}
+
+h4 {
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+        "))),
+    ui.main),
+  server)

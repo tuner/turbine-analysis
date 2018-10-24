@@ -55,7 +55,7 @@ model_and_plot <- function(x, y, axis_labels = list("x", "y")) {
 }
 
 
-explain_variable <- function(variable) {
+explain_variable <- function(variable, data, cex = 0.7) {
   library(glmnet)
   model <- glmnet(as.matrix(scale(data$census)), variable)
   
@@ -67,29 +67,13 @@ explain_variable <- function(variable) {
   # Plot, leave intercept out
   barplot(t(as.matrix(coef(model, s = lambda)))[, -1],
           las = 2,
-          cex.names = 0.7,
-          cex.axis = 0.7)
-}
-
-explain_variable_1 <- function(variable, data) {
-  library(glmnet)
-  model <- glmnet(as.matrix(scale(data$census)), variable)
-  
-  # Use cross-validation to find good lambda
-  model.cv <- cv.glmnet(as.matrix(scale(data$census)), variable)
-  lambda <- model.cv$lambda.min
-  
-  par(mar = c(9, 3, 2, 0.5))
-  # Plot, leave intercept out
-  barplot(t(as.matrix(coef(model, s = lambda)))[, -1],
-          las = 2,
-          cex.names = 0.7,
-          cex.axis = 0.7)
+          cex.names = cex,
+          cex.axis = cex)
 }
 
 
 # Pretty plot of correlations
-plot_correlations <- function() {
+plot_correlations <- function(data, cex = 0.5) {
   # https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html
   library(corrplot)
   library(weights)
@@ -107,32 +91,7 @@ plot_correlations <- function() {
            p.mat = M$p.value,
            insig = "blank",
            method = "circle",
-           #tl.cex = 0.7,
-           tl.cex = 0.5,
+           tl.cex = cex,
            tl.col = "black")
 }
 
-
-# Pretty plot of correlations
-plot_correlations_1 <- function(data) {
-  # https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html
-  library(corrplot)
-  library(weights)
-  
-  local_data <- data
-  
-  # TODO: The questions must be shorter
-  colnames(local_data$turbine) <- paste0(substring(colnames(local_data$turbine), 1, 90))
-  
-  # Create a correlation matrix, turbine survey vs. census
-  M <- with(local_data, wtd.cor(census, turbine, n))
-  
-  # Plot it
-  corrplot(M$correlation,
-           p.mat = M$p.value,
-           insig = "blank",
-           method = "circle",
-           #tl.cex = 0.7,
-           tl.cex = 0.5,
-           tl.col = "black")
-}
