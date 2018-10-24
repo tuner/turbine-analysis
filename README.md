@@ -4,7 +4,10 @@ This is a data science mini-project in Introduction to Data Science course of
 the University of Helsinki.
 
 The actual project title:
-"The factors that may influence the public opinion on using wind turbines"
+"Explaining Poll Results by Neighborhood Characteristics"
+
+The interactive web application is available online at:
+https://tuner.shinyapps.io/turbine-analysis/
 
 ## The team (in alphabetical order)
 
