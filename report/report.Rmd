@@ -83,7 +83,7 @@ claims such as "Wind turbines would influence positively to the public image of
 Helsinki.".  However, it contains no background information beside the age, sex
 and the *zip code* of the responders.
 
-We join the turbine data with a census dataset [@helsinkiByRegions] that
+We join the turbine data with a census dataset [@helsinkiByRegions], which
 contains variables such as *mean income*, *families without cars*, *number of
 booze shops*, and support for political parties. The data is grouped and
 averaged per district.
@@ -94,8 +94,8 @@ averaged per district.
 The questions and other variables in the data sets were written in Finnish.  We
 translated the relevant parts to English. The census dataset contains over a
 hundred variables. We chose a small subset of them for further
-processing, which we had considered helpful in explanation of how people responded
-or just interesting.
+processing by considering which of them are helpful in explaining
+how people would respond. Some of the variables were just intriguing.
 
 
 ## Geographical area harmonization
@@ -190,7 +190,7 @@ the two data sets, we produced scatter plots and fitted a linear model. As the
 sample sizes had considerable variation between the district, we adjusted the
 point sizes in the plot based on the square root of the sample size. We also
 used a weighted linear model to dampen the effect of sampling error that the
-small sample sizes cause. Figure \ref{fig:scatterplot} is an example of such a plot.
+small sample sizes cause. Figure \ref{fig:scatterplot} is an example of such plot.
 
 We also computed weighted correlation coefficients in order to have a single
 summary statistic that describes a pair of variables.
@@ -275,17 +275,17 @@ with the opinions on wind turbines. However, we are playing with population
 averages of only 34 districts, and weaker signals will get lost in the process.
 Also, we have not proven our method formally.
 
-The joined data along with the analyses presented here are available as an
+The joined data along with the analyses presented here are available as an  
 interactive web app: https://tuner.shinyapps.io/turbine-analysis/
 
-The source code for the web app and this report is available on GitHub:
+The source code for the web app and this report is available on GitHub:  
 https://github.com/tuner/turbine-analysis
 
 
 # Authors' contributions
 
-Kari Lavikka came up with the project idea, harmonized the regions, analyzed
-correlations and regressions, and drafted the report.  Vladimir Dobrodeev contributed to
+*KL* came up with the project idea, harmonized the regions, analyzed
+correlations and regressions, and drafted the report.  *VD* contributed to
 the project idea and design, implemented geographical visualizations,
 implemented the Shiny web-application, and revised the report.  Both
 contributed equally to the elevator-pitch presentation.
