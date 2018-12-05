@@ -43,23 +43,26 @@ data <- load_data()
 
 # Introduction
 
-Various entities conduct polls to find out the public opinion on some matter.
+Various entities conduct polls to determine the public opinion on, for example,
+city planning or attitude towards vaccination.
 However, it may be difficult to discover the factors that influence the
-opinions if no questions related to responders background are asked. Such
+opinions if no questions related to respondents' background are asked. Such
 background questions could be about common demographic attributes, such as age
 and sex, but their explanatory power is limited. Having a poll with an excessive
 number of auxiliary questions may be more expensive to conduct, or it may be
-less appealing to the potential responders.
+less appealing to the potential respondents.
 
-Ideally, the poll would only contain the essential questions and the background
-information would be obtained from another source. In practice, however, this
-is infeasible, as the responders would have to identify themselves so that
+Ideally, a poll would only contain the essential questions and the background
+information would be obtained from another source. In practice, however, that
+is infeasible, as the respondents would have to identify themselves so that
 results from multiple polls or other data sources could be combined.
+Implementing an identification method that guarantees respondents' anonymity
+would be challenging.
 
 We have observed that opinions and demographic characteristics vary between
-different geographical regions. It is likely that factors such as accommodation
+different geographical regions. It is likely that factors such as house
 prices, local culture, or even architecture influence the choice of the
-dwelling place.  Based on this observation, we hypothesize that two data sets,
+dwelling place.  Based on this observation, we hypothesize that two datasets,
 a poll and background data, can be joined by geographical regions. Such
 regions may be, for instance, the districts or neighborhoods of a city.
 
@@ -75,23 +78,23 @@ correlating factors.
 
 # Materials and Methods
 
-## The data sets
+## The datasets
 
 Our poll-dataset is about public opinion on wind turbine construction in
 Helsinki [@turbine].  The dataset contains individual responses to questions or
 claims such as "Wind turbines would influence positively to the public image of
 Helsinki.".  However, it contains no background information beside the age, sex
-and the *zip code* of the responders.
+and the *zip code* of the respondents.
 
 We join the turbine data with a census dataset [@helsinkiByRegions], which
 contains variables such as *mean income*, *families without cars*, *number of
-booze shops*, and support for political parties. The data is grouped and
+liquor stores*, and support for political parties. The data is grouped and
 averaged per district.
 
 
 ## Manual data pre-processing
 
-The questions and other variables in the data sets were written in Finnish.  We
+The questions and other variables in the datasets were written in Finnish.  We
 translated the relevant parts to English. The census dataset contains over a
 hundred variables. We chose a small subset of them for further
 processing by considering which of them are helpful in explaining
@@ -100,37 +103,37 @@ how people would respond. Some of the variables were just intriguing.
 
 ## Geographical area harmonization
 
-The turbine dataset contains *zip codes* of the responders. The census data
+The turbine dataset contains *zip codes* of the respondents. The census data
 set, however, contains data with respect to *districts* of Helsinki. Thus, the geographical areas of
-the two data sets are incompatible.  The boundaries of the district and zip
+the two datasets are incompatible.  The boundaries of the districts and the zip
 code areas line up partially, but some zip code areas overlap with multiple
 districts, and some districts overlap with multiple zip code areas. That has
-certain consequences. First, assigning a district for a poll responder is
+certain consequences. First, assigning a district for a poll respondent is
 nontrivial. Second, we can not even be certain about the district when a zip
-code area overlaps with two districts.
+code area overlaps with multiple districts.
 
-To assign a district for a responder based on their zip code, we built a set of
+To assign a district for a respondent based on their zip code, we built a set of
 conditional probability distributions. The distributions determine at which
-probability a responder belongs to a particular district if their zip code is
+probability a respondent belongs to a particular district if their zip code is
 known.
 
 There are multiple ways to build such distributions. A naive method would be
-based on surface areas; how big a zip code area is, and how much it overlaps
+based on surface areas: how large a zip code area is, and how much it overlaps
 with the districts.  However, many regions contain sea or crop fields
 and the distribution would not reflect the actual population distribution.
 
 We chose to base the overlap-computation on the distribution of street
 addresses [@openAddresses].  Sea or crop fields have no addresses, but
-buildings do. We calculate how the coordinates of the street addresses in a
+buildings do. We calculated how the coordinates of the street addresses in a
 specific zip code area overlap with all known districts [@districts]. Figure
 \ref{fig:addresses} shows how the addresses are distributed. Even this method
-is not perfect though; some regions have single-family houses dominantly while
+is not perfect though; some regions comprise single-family houses dominantly while
 others have apartment houses. 
 
-We finally assigned a district for each poll responder by sampling the
+We finally assigned a district for each poll respondent by sampling the
 conditional probability distributions. Although the district may not be the
-true district of the responder, it is still the most likely and spatially close
-given the available information.
+true district of the respondent, it is still the most likely one and spatially
+close given the available information.
 
 
 ```{r results="hide"}
@@ -161,7 +164,7 @@ districts <- spTransform(districts, crs)
 spatial_addresses <- spatial_addresses[districts, ]
 ```
 
-```{r dev="png", fig.width=8, fig.height=8, dpi=150, fig.cap="All street addresses within the boundaries of Helsinki. The color indicates the zip code. There are, however, more zip code areas than distinct colors in the scale. The solid lines represent the district boundaries.  \\label{fig:addresses}"}
+```{r dev="png", fig.width=8, fig.height=8, dpi=150, fig.cap="All street addresses within the boundaries of Helsinki. The color indicates the zip code. There are, however, more zip codes than distinct colors in the scale. The solid lines represent the district boundaries.  \\label{fig:addresses}"}
 # Create a palette for plotting
 pal <- c(colors(TRUE), colors(TRUE))
 
@@ -176,18 +179,18 @@ plot(spatial_addresses[districts, ],
 plot(districts, add=T)
 ```
 
-## Joining the data sets
+## Joining the datasets
 
 After harmonizing the regions, we computed per-district means for the poll
-data.  As both of the two data sets now contain district identifiers, we joined
+data.  As both of the two datasets now contain district identifiers, we joined
 them by the district. As a result, we have a data frame that contains variables
 from both the poll results and the census data.
 
 ## Visualizing with scatter plot and simple linear regression
 
 To validate our hypotheses and study the correlation between the variables from
-the two data sets, we produced scatter plots and fitted a linear model. As the
-sample sizes had considerable variation between the district, we adjusted the
+the two datasets, we produced scatter plots and fitted a linear model. As the
+sample sizes had considerable variation between the districts, we adjusted the
 point sizes in the plot based on the square root of the sample size. We also
 used a weighted linear model to dampen the effect of sampling error that the
 small sample sizes cause. Figure \ref{fig:scatterplot} is an example of such plot.
@@ -195,7 +198,7 @@ small sample sizes cause. Figure \ref{fig:scatterplot} is an example of such plo
 We also computed weighted correlation coefficients in order to have a single
 summary statistic that describes a pair of variables.
 
-```{r fig.height=4.5, fig.cap = "A scatter plot and a regression line. The X and Y axes represent variables from the census and the poll data sets, respectively. \\label{fig:scatterplot}"}
+```{r fig.height=4.5, fig.cap = "A scatter plot and a regression line. The X and Y axes represent variables from the census and the poll datasets, respectively. \\label{fig:scatterplot}"}
 
 model_and_plot(data$census$VASL,
                data$turbine$`Construction of wind turbines would have a positive impact on Helsinki's image.`,
@@ -272,7 +275,7 @@ factors are of less importance but may warrant further investigation.
 
 We have demonstrated that our method is able to reveal factors that correlate
 with the opinions on wind turbines. However, we are playing with population
-averages of only 34 districts, and weaker signals will get lost in the process.
+averages of only 34 districts, and weaker signals inevitably get lost in the process.
 Also, we have not proven our method formally.
 
 The joined data along with the analyses presented here are available as an  
